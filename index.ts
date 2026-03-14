@@ -15,12 +15,12 @@ const key = "servers";
 const client = createClient();
 await client.connect();
 
-/**
- * TODO - publish an event to all wss on reset of server list,
- * allowing them all to re-register. this way the load balancer
- * can be restarted without needing to reboot all wss instances.
- */
-await client.del(key);
+const resetClientList = async () => {
+  const event = "wss-list.clear";
+  await client.del(key);
+  await client.publish(event, "");
+};
+await resetClientList();
 
 const getServers = async (): Promise<Array<Server>> =>
   JSON.parse((await client.get(key)) ?? "[]") || [];
@@ -30,6 +30,12 @@ const serverLiveConnectionsKey = (server: Server) => `${server.id}-connections`;
 const getLiveConnections = async (server: Server): Promise<number> => {
   return Number((await client.get(serverLiveConnectionsKey(server))) ?? 0);
 };
+
+app.get("/servers", async (req, res) => {
+  const servers = await getServers();
+
+  res.send(JSON.stringify(servers));
+});
 
 app.get("/servers/provision", async (req, res) => {
   const servers = await getServers();
