@@ -1,6 +1,11 @@
 import express from "express";
 import { createClient } from "redis";
 
+interface Server {
+  id: string;
+  url: string;
+}
+
 const app = express();
 const port = 3000;
 
@@ -29,7 +34,7 @@ const removeServer = async (name: string) => {
   await client.set(key, JSON.stringify(newServers));
 };
 
-const getServers = async () =>
+const getServers = async (): Promise<Array<Server>> =>
   JSON.parse((await client.get(key)) ?? "[]") || [];
 
 app.get("/servers/provision", async (req, res) => {
