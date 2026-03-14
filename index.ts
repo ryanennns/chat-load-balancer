@@ -32,7 +32,7 @@ const removeServer = async (name: string) => {
 const getServers = async () =>
   JSON.parse((await client.get(key)) ?? "[]") || [];
 
-app.get("/get-server", async (req, res) => {
+app.get("/servers/provision", async (req, res) => {
   res.send(JSON.stringify(await getServers()));
 });
 
