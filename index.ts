@@ -22,23 +22,31 @@ await client.connect();
  */
 await client.del(key);
 
-const addServer = async (name: string) => {
-  const servers = JSON.parse((await client.get(key)) ?? "[]") || [];
-  servers.push(name);
-  await client.set(key, JSON.stringify([...new Set(servers)]));
-};
-
-const removeServer = async (name: string) => {
-  const servers = JSON.parse((await client.get(key)) ?? "[]") || [];
-  const newServers = servers.filter((x: string) => x !== name);
-  await client.set(key, JSON.stringify(newServers));
-};
-
 const getServers = async (): Promise<Array<Server>> =>
   JSON.parse((await client.get(key)) ?? "[]") || [];
 
+const serverLiveConnectionsKey = (server: Server) => `${server.id}-connections`;
+
+const getLiveConnections = async (server: Server): Promise<number> => {
+  return Number((await client.get(serverLiveConnectionsKey(server))) ?? 0);
+};
+
 app.get("/servers/provision", async (req, res) => {
-  res.send(JSON.stringify(await getServers()));
+  const servers = await getServers();
+
+  if (servers.length === 0) {
+    res.send(JSON.stringify({ error: "no servers" }));
+  }
+
+  let server = servers[0];
+  servers.forEach((s) => {
+    const liveConnections = getLiveConnections(s);
+    if (liveConnections < getLiveConnections(server)) {
+      server = s;
+    }
+  });
+
+  res.send(JSON.stringify(server));
 });
 
 app.listen(port, () => {
